@@ -106,7 +106,7 @@ def _preprocess_csv(content: bytes) -> str:
     try:
         df = pd.read_csv(io.BytesIO(content))
         return f"### CSV data\n\n{df.to_markdown(index=False)}"
-    except pd.errors.ParserError:
+    except (pd.errors.ParserError, pd.errors.EmptyDataError):
         pass
 
     text = content.decode("utf-8", errors="replace")

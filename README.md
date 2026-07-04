@@ -138,6 +138,22 @@ sync uses, so you can see extraction + querying working before touching OAuth.
 5. Restart the backend, click **"Connect Google Drive"**, authorize, pick a folder that contains some fund
    documents, and hit **Sync Now**.
 
+## Running tests
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest
+```
+
+Covers the pure, deterministic logic that doesn't require a live DB, Drive account, or Gemini API call:
+document preprocessing (`ingest/preprocess.py` — table-to-markdown conversion, the messy-CSV
+header-detection fallback, HTML table extraction), the SQL tool's guardrails (`query/sql_tool.py` —
+SELECT-only, no statement stacking, forced `LIMIT`), and the date-parsing helpers in the ingest pipeline.
+Extraction/embeddings/the query agent/Drive OAuth are exercised via the manual-upload + query flow
+end-to-end instead of unit tests — mocking the Gemini/Drive clients meaningfully would cost more than it's
+worth at this scope.
+
 ## Example questions to try
 
 - "Which fund had the best January return?" → SQL tool
