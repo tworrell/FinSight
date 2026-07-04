@@ -21,24 +21,38 @@ def _client_config() -> dict:
     }
 
 
-def build_flow() -> Flow:
+# google-auth-oauthlib defaults to PKCE (autogenerate_code_verifier=True): the Flow instance
+# that builds the authorization URL generates a code_verifier, and the *same* verifier must be
+# presented when exchanging the code for a token. Since the auth-url step and the callback are
+# handled by separate requests (and therefore separate Flow objects), we stash the verifier
+# from the first step here and hand it to the second. Fine for this single-tenant demo — a
+# multi-user version would key this by the `state` param instead of just holding the latest one.
+_pending_code_verifier: str | None = None
+
+
+def build_flow(code_verifier: str | None = None) -> Flow:
     return Flow.from_client_config(
-        _client_config(), scopes=SCOPES, redirect_uri=settings.google_oauth_redirect_uri
+        _client_config(),
+        scopes=SCOPES,
+        redirect_uri=settings.google_oauth_redirect_uri,
+        code_verifier=code_verifier,
     )
 
 
 def get_auth_url() -> str:
+    global _pending_code_verifier
     flow = build_flow()
     auth_url, _state = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
         prompt="consent",  # ensures we get a refresh_token even on repeat connects
     )
+    _pending_code_verifier = flow.code_verifier
     return auth_url
 
 
 def exchange_code(code: str) -> Credentials:
-    flow = build_flow()
+    flow = build_flow(code_verifier=_pending_code_verifier)
     flow.fetch_token(code=code)
     creds = flow.credentials
     _save_credentials(creds)

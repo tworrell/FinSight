@@ -10,5 +10,5 @@ dist/
 build/
 *.log
 .DS_Store
-token.json
+*token*.json
 credentials.json
