@@ -9,6 +9,8 @@ const AUTO_SYNC_INTERVAL_MS = 30_000;
 export function DriveConnectCard({ onSynced }: { onSynced: () => void }) {
   const [status, setStatus] = useState<DriveStatus | null>(null);
   const [folders, setFolders] = useState<DriveFolder[] | null>(null);
+  const [folderQuery, setFolderQuery] = useState("");
+  const [searchingFolders, setSearchingFolders] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +74,27 @@ export function DriveConnectCard({ onSynced }: { onSynced: () => void }) {
     }
   };
 
-  const loadFolders = async () => {
+  const loadFolders = async (query?: string) => {
+    setSearchingFolders(true);
     try {
-      const f = await api.driveFolders();
+      const f = await api.driveFolders(query || undefined);
       setFolders(f);
+      setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not list Drive folders.");
+    } finally {
+      setSearchingFolders(false);
     }
   };
+
+  // debounce search-as-you-type against the backend's ?q= name-contains filter, rather than
+  // just showing an unfiltered (and capped-at-100) list of every folder in the user's Drive
+  useEffect(() => {
+    if (folders === null) return; // picker not open yet
+    const id = setTimeout(() => loadFolders(folderQuery), 300);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderQuery]);
 
   const selectFolder = async (folder: DriveFolder) => {
     const s = await api.driveSelectFolder(folder.id, folder.name);
@@ -121,23 +136,43 @@ export function DriveConnectCard({ onSynced }: { onSynced: () => void }) {
       {status.connected && !status.folder_id && (
         <div className="mt-3">
           {folders === null ? (
-            <button onClick={loadFolders} className="btn-secondary">
+            <button onClick={() => loadFolders()} className="btn-secondary">
               Choose a folder to watch
             </button>
           ) : (
-            <ul className="mt-1 max-h-48 overflow-y-auto divide-y divide-neutral-800 border border-neutral-800 rounded-lg">
-              {folders.length === 0 && <li className="px-3 py-2 text-sm text-neutral-500">No folders found.</li>}
-              {folders.map((f) => (
-                <li key={f.id}>
-                  <button
-                    onClick={() => selectFolder(f)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-800/60 transition"
-                  >
-                    {f.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div>
+              <input
+                autoFocus
+                value={folderQuery}
+                onChange={(e) => setFolderQuery(e.target.value)}
+                placeholder="Search your Drive folders by name…"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 placeholder:text-neutral-600"
+              />
+              <ul className="mt-2 max-h-48 overflow-y-auto divide-y divide-neutral-800 border border-neutral-800 rounded-lg">
+                {searchingFolders && <li className="px-3 py-2 text-sm text-neutral-500">Searching…</li>}
+                {!searchingFolders && folders.length === 0 && (
+                  <li className="px-3 py-2 text-sm text-neutral-500">
+                    No folders found{folderQuery ? ` matching "${folderQuery}"` : ""}.
+                  </li>
+                )}
+                {!searchingFolders &&
+                  folders.map((f) => (
+                    <li key={f.id}>
+                      <button
+                        onClick={() => selectFolder(f)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-800/60 transition"
+                      >
+                        {f.name}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+              {!searchingFolders && !folderQuery && folders.length === 100 && (
+                <p className="mt-1 text-xs text-amber-400">
+                  Showing the first 100 folders — type a name above to search instead of browsing the full list.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
