@@ -10,7 +10,7 @@ from app.db import get_db
 from app.drive.client import build_drive_service, download_file, list_files_in_folder, list_folders
 from app.drive.oauth import exchange_code, get_auth_url, is_connected, load_credentials
 from app.ingest.pipeline import ingest_document
-from app.models import DriveState
+from app.models import Document, DocumentStatus, DriveState
 from app.schemas import DriveFolderOut, DriveStatusOut, SyncResult
 
 router = APIRouter(prefix="/drive", tags=["drive"])
@@ -97,9 +97,32 @@ def sync(db: Session = Depends(get_db)):
     service = build_drive_service(creds)
     files = list_files_in_folder(service, state.folder_id, modified_after=state.sync_cursor)
 
+    # The cursor advances past every file's modifiedTime regardless of whether ingestion
+    # succeeded, so a file that failed (e.g. a transient API error) would otherwise never be
+    # looked at again on later syncs. Retry anything still sitting in `error` on every sync.
+    # `processing` is included too: this pipeline runs synchronously within a single request
+    # with no background worker, so a row left in `processing` means a previous attempt was
+    # interrupted mid-flight (a server restart, a crashed worker) rather than genuinely in
+    # progress — safe to treat as orphaned and retry.
+    already_queued = {f["id"] for f in files}
+    failed_docs = (
+        db.query(Document)
+        .filter(
+            Document.source == "drive",
+            Document.status.in_([DocumentStatus.error, DocumentStatus.processing]),
+            Document.drive_file_id.isnot(None),
+        )
+        .all()
+    )
+    retry_files = [
+        {"id": d.drive_file_id, "name": d.filename, "mimeType": d.mime_type, "modifiedTime": d.drive_modified_time}
+        for d in failed_docs
+        if d.drive_file_id not in already_queued
+    ]
+
     processed, failed = 0, 0
     latest_modified = state.sync_cursor
-    for f in files:
+    for f in files + retry_files:
         content = download_file(service, f["id"], f["mimeType"])
         doc = ingest_document(
             db,
@@ -114,11 +137,18 @@ def sync(db: Session = Depends(get_db)):
             processed += 1
         else:
             failed += 1
-        if latest_modified is None or f["modifiedTime"] > latest_modified:
+        # only files newer than the cursor should advance it — retried files are already <= cursor
+        if f in files and (latest_modified is None or f["modifiedTime"] > latest_modified):
             latest_modified = f["modifiedTime"]
 
     state.sync_cursor = latest_modified
     state.last_synced_at = datetime.now(timezone.utc)
     db.commit()
 
-    return SyncResult(new_files=len(files), processed=processed, failed=failed, last_synced_at=state.last_synced_at)
+    return SyncResult(
+        new_files=len(files),
+        retried=len(retry_files),
+        processed=processed,
+        failed=failed,
+        last_synced_at=state.last_synced_at,
+    )

@@ -105,6 +105,7 @@ class DriveFolderOut(BaseModel):
 
 class SyncResult(BaseModel):
     new_files: int
+    retried: int
     processed: int
     failed: int
     last_synced_at: datetime

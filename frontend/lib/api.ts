@@ -22,7 +22,13 @@ export type DriveStatus = {
 
 export type DriveFolder = { id: string; name: string };
 
-export type SyncResult = { new_files: number; processed: number; failed: number; last_synced_at: string };
+export type SyncResult = {
+  new_files: number;
+  retried: number;
+  processed: number;
+  failed: number;
+  last_synced_at: string;
+};
 
 export type Fund = { id: string; name: string; manager: string | null };
 

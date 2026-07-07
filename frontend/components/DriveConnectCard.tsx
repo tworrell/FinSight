@@ -44,10 +44,12 @@ export function DriveConnectCard({ onSynced }: { onSynced: () => void }) {
     setSyncMessage(null);
     try {
       const result = await api.driveSync();
+      const total = result.new_files + result.retried;
+      const retriedNote = result.retried > 0 ? ` (${result.retried} retried after a previous failure)` : "";
       setSyncMessage(
-        result.new_files === 0
+        total === 0
           ? "No new or changed files since last sync."
-          : `Synced ${result.new_files} file(s): ${result.processed} processed, ${result.failed} failed.`
+          : `Synced ${total} file(s)${retriedNote}: ${result.processed} processed, ${result.failed} failed.`
       );
       await refreshStatus();
       onSynced();
