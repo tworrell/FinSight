@@ -6,6 +6,8 @@ files land in the folder.
 
 > Built for the Equi Founding Engineer / Applied AI Lead take-home (Option A).
 
+**Video walkthrough**: https://www.loom.com/share/a5ec1fb09fbf40ffa43f7c1a20cce445
+
 ## What it does
 
 1. **Connect** a Google account via OAuth and pick a Drive folder to watch (or just drag files onto the
