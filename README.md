@@ -1,12 +1,8 @@
-# Equi Document Intelligence -Tara Worrell
+# AI Document Intelligence -Tara Worrell
 
 Connect a Google Drive folder, drop in messy fund factsheets/statements/performance reports (PDF, CSV,
 HTML), and get a searchable, queryable table of structured data — automatically re-synced whenever new
 files land in the folder.
-
-> Built for the Equi Founding Engineer / Applied AI Lead take-home (Option A).
-
-**Video walkthrough**: https://www.loom.com/share/a5ec1fb09fbf40ffa43f7c1a20cce445
 
 ## What it does
 
@@ -48,8 +44,6 @@ preprocessing, `google-genai` for Gemini.
 extra state library needed for a dashboard this size.
 
 ## Key design decisions
-
-These map to the discovery conversation before building:
 
 - **Preprocess before extracting, don't go zero-shot.** Financial tables are exactly where zero-shot LLM
   extraction falls over (merged headers, footnotes bleeding into numbers). `preprocess.py` uses PyMuPDF for
@@ -169,7 +163,7 @@ worth at this scope.
   "drop ~20 files, hit sync" demo; at real volume this moves to a background task queue (Celery/RQ/Cloud
   Tasks) with per-document retries.
 - **Single-tenant.** One Drive connection, one token store, no multi-user auth — intentionally out of scope
-  for a take-home; the schema has no user/org boundary yet.
+  for now; the schema has no user/org boundary yet.
 - **SQL tool guardrails are a lightweight blocklist** (SELECT-only, no DDL/DML keywords, single statement,
   forced `LIMIT`), sufficient since the caller is our own LLM, not an untrusted end user. A production
   version would also run it against a Postgres role granted `SELECT`-only on the four relevant tables.

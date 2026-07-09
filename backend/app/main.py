@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Equi Document Intelligence", lifespan=lifespan)
+app = FastAPI(title="Document Intelligence", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

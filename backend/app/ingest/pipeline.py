@@ -98,7 +98,7 @@ def ingest_document(
 ) -> Document:
     """Runs the full pipeline synchronously: preprocess -> LLM extract -> persist -> embed.
 
-    Synchronous/in-request processing is a deliberate scope cut for this take-home — at real
+    Synchronous/in-request processing is a deliberate scope cut for this project — at real
     volume this would move to a background task queue, but for a "drop ~20 files, hit sync"
     demo it keeps the system trivially easy to reason about and debug.
     """

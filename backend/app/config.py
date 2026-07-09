@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env", extra="ignore")
 
     gemini_api_key: str
-    database_url: str = "postgresql+psycopg://equi:equi@localhost:5433/equi_docintel"
+    database_url: str = "postgresql+psycopg://docintel:docintel@localhost:5433/docintel"
 
     google_oauth_client_id: str = ""
     google_oauth_client_secret: str = ""

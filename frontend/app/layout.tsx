@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Equi Document Intelligence",
+  title: "Document Intelligence",
   description: "Drive-connected fund document ingestion, extraction, and Q&A",
 };
 
