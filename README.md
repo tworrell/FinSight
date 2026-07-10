@@ -1,4 +1,4 @@
-# AI Document Intelligence -Tara Worrell
+# FinSight: AI-Powered Financial Document Intelligence Pipeline -Tara Worrell
 
 Connect a Google Drive folder, drop in messy fund factsheets/statements/performance reports (PDF, CSV,
 HTML), and get a searchable, queryable table of structured data — automatically re-synced whenever new
